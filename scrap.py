@@ -14,26 +14,31 @@ def obtener_info_producto(url, selector_precio):
     try:
         respuesta = requests.get(url, headers=headers)
         respuesta.raise_for_status()
+        
         sopa = BeautifulSoup(respuesta.text, 'html.parser')
         
         elemento_precio = sopa.select_one(selector_precio)
+
         if elemento_precio:
-            return elemento_precio.text.strip()
+            texto_precio = elemento_precio.text.strip()
+
+            match = re.search(r'\$?([\d.]+)', texto_precio)
+            if match:
+                precio = match.group(1)
+                precio = precio.rstrip('.')
+                return precio  
         
         return "Precio no encontrado"
     except Exception as e:
         return f"Error: {str(e)}"
 
 def buscar_perfume(marca, nombre, sitios):
-    perfume_buscado = f"{marca} {nombre}"
-    nombre_busqueda = limpiar_nombre_perfume(perfume_buscado)
-    nombre_solo = limpiar_nombre_perfume(nombre)
     resultados = []
     for sitio in sitios:
-        if sitio["nombre"] == "Cosmetic":
-            url_busqueda = f"{sitio['url_base']}{nombre_solo}{sitio['parametro_busqueda']}"
-        else:
-            url_busqueda = sitio["url_base"] + nombre_busqueda + sitio["parametro_busqueda"]
+        perfume_buscado = f"{marca} {nombre}"
+        nombre_busqueda = limpiar_nombre_perfume(perfume_buscado)
+        
+        url_busqueda = sitio["url_base"] + nombre_busqueda + sitio["parametro_busqueda"]
         precio = obtener_info_producto(url_busqueda, sitio["selector_precio"])
         resultados.append({
             "sitio": sitio["nombre"],
@@ -57,16 +62,16 @@ sitios = [
         "selector_precio": ".price__default .price__current"
     },
     {
-        "nombre": "Cosmetic",
-        "url_base": "https://cosmetic.cl/search?q=",
-        "parametro_busqueda": "&type=product",
-        "selector_precio": ".money"
+        "nombre": "Dperfumes",
+        "url_base": "https://dperfumes.cl/?s=",
+        "parametro_busqueda": "&post_type=product",
+        "selector_precio": "span.screen-reader-text:nth-of-type(2)"
     }
 ]
 
 # Nombre y marca del perfume a buscar
-marca_perfume = "MontBlanc"
-nombre_perfume = "Legend Spirit edt"
+marca_perfume = "Hermes"
+nombre_perfume = "Terre D'Hermes"
 
 # Realizar la búsqueda
 resultados = buscar_perfume(marca_perfume, nombre_perfume, sitios)
